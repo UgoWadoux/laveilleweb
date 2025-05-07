@@ -3,7 +3,7 @@
 </script>
 
 <template>
-  <header class="header bg-gray-100 h-24 flex items-center justify-between">
+  <header class="header bg-gray-100 h-24 flex items-center justify-between px-4">
     <p>Logo</p>
     <nav>
       <ul class="flex items-center justify-between flex-row gap-x-2">
