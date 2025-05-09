@@ -5,5 +5,11 @@ export default defineNuxtConfig({
   modules: ['@nuxtjs/tailwindcss', '@nuxt/image', '@nuxt/eslint', '@nuxt/icon'],
   imports: {
     autoImport: true
+  },
+  runtimeConfig: {
+    public: {
+      supabaseUrl: process.env.NUXT_PUBLIC_SUPABASE_URL, // sera remplacé par NUXT_PUBLIC_SUPABASE_URL
+      supabaseAnonKey: process.env.NUXT_PUBLIC_SUPABASE_KEY // sera remplacé par NUXT_PUBLIC_SUPABASE_ANON_KEY
+    }
   }
 })
