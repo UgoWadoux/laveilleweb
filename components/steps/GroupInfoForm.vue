@@ -160,35 +160,14 @@ const submitStep = () => {
     // Filtrer les participants vides
     const filteredParticipants = localFormData.value.participants.filter(p => p.name.trim() !== '')
 
-    // Générer un code de session
-    const sessionCode = generateSessionCode()
-
     // Mettre à jour les données du formulaire
     emit('update:form-data', {
       ...localFormData.value,
-      participants: filteredParticipants,
-      sessionCode
+      participants: filteredParticipants
     })
 
     // Passer à l'étape suivante
     emit('next-step')
   }
-}
-
-// Génération d'un code de session
-const generateSessionCode = () => {
-  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
-  let code = ''
-
-  // Format: CODE168-876GB-IHB09
-  for (let i = 0; i < 15; i++) {
-    if (i === 4 || i === 10) {
-      code += '-'
-    } else {
-      code += chars.charAt(Math.floor(Math.random() * chars.length))
-    }
-  }
-
-  return code
 }
 </script>

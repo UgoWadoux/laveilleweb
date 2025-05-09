@@ -16,7 +16,8 @@
 </template>
 
 <script setup>
-import { ref, markRaw } from 'vue'
+import { ref, markRaw, watch } from 'vue'
+import { useSupabase } from '~/composables/useSupabase'
 import TimeSlotSelection from './steps/TimeSlotSelection.vue'
 import GroupInfoForm from './steps/GroupInfoForm.vue'
 import SuccessPage from './steps/SuccessPage.vue'
@@ -26,6 +27,9 @@ import MemoryEmotions from './memory-steps/MemoryEmotions.vue'
 import MemoryObject from './memory-steps/MemoryObject.vue'
 import MemoryMedia from './memory-steps/MemoryMedia.vue'
 import MemoryMusic from './memory-steps/MemoryMusic.vue'
+
+const { getSessionByCode } = useSupabase()
+const route = useRoute()
 
 // Définition des étapes
 const steps = markRaw([
@@ -87,9 +91,10 @@ const formData = ref({
   hasAccessibilityNeeds: false,
   accessibilityDetails: '',
   sessionCode: '',
+  sessionId: null,
 
   // Données du formulaire de souvenirs
-  memoryParticipants: [{ name: '' }],
+  memoryParticipants: [],
   title: '',
   description: '',
   emotions: [],
@@ -107,6 +112,47 @@ const currentStep = ref(0)
 
 // Émission de l'événement pour mettre à jour le titre dans le parent
 const emit = defineEmits(['step-change'])
+
+// Vérifier si on a un code de session dans l'URL
+onMounted(async () => {
+  const sessionCode = route.query.code
+  if (sessionCode) {
+    await loadSessionByCode(sessionCode)
+  }
+})
+
+// Charger une session existante par son code
+const loadSessionByCode = async (code) => {
+  try {
+    const session = await getSessionByCode(code)
+    if (session) {
+      console.log('Session chargée:', session) // Pour déboguer
+
+      // Mettre à jour les données du formulaire avec les données de la session
+      formData.value = {
+        ...formData.value,
+        selectedDay: session.selected_day,
+        selectedTime: session.selected_time,
+        participants: session.participants,
+        hasAccessibilityNeeds: session.has_accessibility_needs,
+        accessibilityDetails: session.accessibility_details,
+        sessionCode: session.code,
+        sessionId: session.id // Assurez-vous que cette ligne est présente
+      }
+
+      // Si on a un paramètre memory=true, aller directement au formulaire de souvenirs
+      if (route.query.memory === 'true') {
+        startMemoryForm()
+      } else {
+        // Sinon, aller à la page de confirmation
+        currentStep.value = 2 // Index de SuccessPage
+        emit('step-change', currentStep.value)
+      }
+    }
+  } catch (error) {
+    console.error('Erreur lors du chargement de la session:', error)
+  }
+}
 
 // Méthodes pour naviguer entre les étapes
 const nextStep = () => {
@@ -139,10 +185,8 @@ const updateFormData = (newData) => {
 const completeForm = () => {
   // Logique pour soumettre le formulaire complet
   console.log('Formulaire complété:', formData.value)
-  // Ici vous pourriez appeler une API, etc.
 
-  // Réinitialiser le formulaire et revenir à la première étape
-  // ou afficher un message de confirmation
-  alert('Formulaire soumis avec succès!')
+  // Rediriger vers la page de confirmation ou de liste des souvenirs
+  navigateTo(`/session/${formData.value.sessionCode}`)
 }
 </script>

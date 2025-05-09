@@ -32,17 +32,20 @@
 
     <div class="mt-8">
       <button
-          class="w-full py-3 px-4 bg-gray-200 rounded-full text-center"
-          @click="submitStep"
+          class="w-full py-3 px-4 bg-gray-200 rounded-full text-center transition-colors disabled:opacity-50"
+          :disabled="isSaving"
+          @click="submitMemory"
       >
-        Valider
+        {{ isSaving ? 'Enregistrement...' : 'Valider' }}
       </button>
     </div>
   </div>
 </template>
 
+<!-- components/memory-steps/MemoryMusic.vue -->
 <script setup>
 import { ref, watch } from 'vue'
+import { useSupabase } from '~/composables/useSupabase'
 
 const props = defineProps({
   formData: {
@@ -52,6 +55,8 @@ const props = defineProps({
 })
 
 const emit = defineEmits(['update:form-data', 'next-step', 'prev-step', 'complete'])
+const { createMemory, getSessionByCode } = useSupabase()
+const isSaving = ref(false)
 
 // Copie locale des données du formulaire
 const localFormData = ref({
@@ -79,17 +84,59 @@ const prevStep = () => {
 }
 
 const skipStep = () => {
-  emit('complete')
+  submitMemory(true)
 }
 
-// Soumission de l'étape
-const submitStep = () => {
+// Soumission du souvenir complet
+const submitMemory = async (skip = false) => {
   // Mettre à jour les données du formulaire
   emit('update:form-data', {
     ...localFormData.value
   })
 
-  // Compléter le formulaire
-  emit('complete')
+  // Sauvegarder le souvenir dans Supabase
+  isSaving.value = true
+
+  try {
+    let sessionId = props.formData.sessionId
+
+    // Si l'ID de session n'est pas disponible mais que le code de session l'est
+    if (!sessionId && props.formData.sessionCode) {
+      console.log('Récupération de la session par code:', props.formData.sessionCode)
+      const session = await getSessionByCode(props.formData.sessionCode)
+
+      if (session) {
+        sessionId = session.id
+        // Mettre à jour l'ID de session dans le formulaire
+        emit('update:form-data', {
+          ...localFormData.value,
+          sessionId: sessionId
+        })
+      } else {
+        throw new Error('Session non trouvée')
+      }
+    }
+
+    // Vérifier si on a un ID de session
+    if (!sessionId) {
+      throw new Error('ID de session manquant')
+    }
+
+    console.log('Création du souvenir avec sessionId:', sessionId)
+
+    // Créer le souvenir
+    const memory = await createMemory(sessionId, {
+      ...localFormData.value,
+      music: skip ? {} : localFormData.value.music
+    })
+
+    // Compléter le formulaire
+    emit('complete')
+  } catch (error) {
+    console.error('Erreur lors de la création du souvenir:', error)
+    alert('Une erreur est survenue lors de la sauvegarde du souvenir: ' + error.message)
+  } finally {
+    isSaving.value = false
+  }
 }
 </script>

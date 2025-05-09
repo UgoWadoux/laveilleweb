@@ -43,6 +43,9 @@
 </template>
 
 <script setup>
+import { ref } from 'vue'
+import { useSupabase } from '~/composables/useSupabase'
+
 const props = defineProps({
   formData: {
     type: Object,
@@ -51,6 +54,10 @@ const props = defineProps({
 })
 
 const emit = defineEmits(['prev-step', 'complete', 'start-memory'])
+const { createSession } = useSupabase()
+const isCreating = ref(false)
+const sessionCreated = ref(false)
+const sessionData = ref(null)
 
 // Navigation
 const prevStep = () => {
@@ -60,6 +67,43 @@ const prevStep = () => {
 const skipStep = () => {
   emit('complete')
 }
+
+// Créer la session dans Supabase
+const createSessionInSupabase = async () => {
+  if (sessionCreated.value) return
+
+  isCreating.value = true
+
+  try {
+    const session = await createSession(props.formData)
+    sessionData.value = session
+    sessionCreated.value = true
+
+    console.log('Session créée:', session) // Pour déboguer
+
+    // Mettre à jour le code de session et l'ID de session dans le formulaire
+    emit('update:form-data', {
+      ...props.formData,
+      sessionCode: session.code,
+      sessionId: session.id // Assurez-vous que cette ligne est présente
+    })
+  } catch (error) {
+    console.error('Erreur lors de la création de la session:', error)
+    alert('Une erreur est survenue lors de la création de la session')
+  } finally {
+    isCreating.value = false
+  }
+}
+
+// Appeler la création de session au montage du composant
+onMounted(async () => {
+  if (!props.formData.sessionCode) {
+    await createSessionInSupabase()
+  } else {
+    sessionCreated.value = true
+    sessionData.value = { code: props.formData.sessionCode }
+  }
+})
 
 // Copier le code
 const copyCode = () => {
@@ -72,7 +116,7 @@ const copyCode = () => {
       })
 }
 
-// Entrer un souvenir - maintenant ça passe à l'étape suivante du même formulaire
+// Entrer un souvenir
 const enterMemory = () => {
   emit('start-memory')
 }
