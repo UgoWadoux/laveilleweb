@@ -16,7 +16,7 @@
           <div
               class="border rounded-lg p-4 cursor-pointer"
               :class="{
-              'border-blue-500': selectedParticipantIds.includes(participant.id),
+              'border-black border-2': selectedParticipantIds.includes(participant.id),
               'border-gray-300': !selectedParticipantIds.includes(participant.id)
             }"
               @click="toggleParticipant(participant.id)"
